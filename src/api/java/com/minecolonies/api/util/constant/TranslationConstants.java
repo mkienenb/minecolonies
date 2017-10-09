@@ -106,7 +106,7 @@ public final class TranslationConstants
     @NonNls
     public static final String COM_MINECOLONIES_COREMOD_GUI_LUMBERJACK                        = "com.minecolonies.coremod.job.Lumberjack";
     @NonNls
-    public static final String COM_MINECOLONIES_COREMOD_ENTITY_GUARD_ARMOR_REQUEST            = "entity.worker.armorReguest";
+    public static final String COM_MINECOLONIES_COREMOD_ENTITY_GUARD_ARMOR_REQUEST            = "entity.worker.armorRequest";
 
     private TranslationConstants()
     {
