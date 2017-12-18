@@ -48,6 +48,11 @@ public class BuildToolPasteMessage extends AbstractMessage<BuildToolPasteMessage
      */
     private static final int SUPPLY_SHIP_CHEST_HEIGHT = 6;
 
+    /**
+     * The position the schematic string starts.
+     */
+    private static final int SCHEM_STRING_START = 10;
+
     private boolean complete;
     private String                   structureName;
     private String                   workOrderName;
@@ -171,7 +176,7 @@ public class BuildToolPasteMessage extends AbstractMessage<BuildToolPasteMessage
             return;
         }
 
-        if (player.capabilities.isCreativeMode)
+        if (player.capabilities.isCreativeMode && message.freeMode != WindowBuildTool.FreeMode.MOVE)
         {
             if (message.isHut)
             {
@@ -180,7 +185,7 @@ public class BuildToolPasteMessage extends AbstractMessage<BuildToolPasteMessage
             StructureWrapper.loadAndPlaceStructureWithRotation(player.world, message.structureName,
               message.pos, message.rotation, message.mirror ? Mirror.FRONT_BACK : Mirror.NONE, message.complete);
         }
-        else if(message.freeMode !=  null )
+        else if(message.freeMode !=  null)
         {
             final List<ItemStack> stacks = new ArrayList<>();
             final int chestHeight;
@@ -201,6 +206,18 @@ public class BuildToolPasteMessage extends AbstractMessage<BuildToolPasteMessage
                 stacks.add(new ItemStack(ModItems.supplyCamp));
                 chestHeight = 1;
             }
+            else if(message.freeMode == WindowBuildTool.FreeMode.MOVE)
+            {
+                stacks.add(new ItemStack(ModItems.caliper));
+                if(InventoryUtils.removeStacksFromItemHandler(new InvWrapper(player.inventory), stacks))
+                {
+                    handleHut(CompatibilityUtils.getWorld(player), player, new StructureName(message.workOrderName.substring(SCHEM_STRING_START, message.workOrderName.length())), message.rotation, message.pos, message.mirror);
+                    StructureWrapper.loadAndPlaceStructureWithRotation(player.world, message.structureName,
+                        message.pos, message.rotation, message.mirror ? Mirror.FRONT_BACK : Mirror.NONE, message.complete);
+                    Structures.deleteScannedStructure(sn);
+                }
+                return;
+            }
             else
             {
                 chestHeight = 0;
@@ -211,7 +228,8 @@ public class BuildToolPasteMessage extends AbstractMessage<BuildToolPasteMessage
             {
                 StructureWrapper.loadAndPlaceStructureWithRotation(player.world, message.structureName,
                         message.pos, message.rotation, message.mirror ? Mirror.FRONT_BACK : Mirror.NONE, message.complete);
-                player.getServerWorld().setBlockState(message.pos.up(chestHeight), Blocks.CHEST.getDefaultState().withProperty(BlockChest.FACING, player.getHorizontalFacing()));
+                player.getServerWorld()
+                        .setBlockState(message.pos.up(chestHeight), Blocks.CHEST.getDefaultState().withProperty(BlockChest.FACING, player.getHorizontalFacing()));
                 fillChest((TileEntityChest) player.getServerWorld().getTileEntity(message.pos.up(chestHeight)));
             }
             else
@@ -248,8 +266,7 @@ public class BuildToolPasteMessage extends AbstractMessage<BuildToolPasteMessage
      * @param buildPos      The location the hut is being placed.
      * @param mirror        Whether or not the strcture is mirrored.
      */
-    private static void handleHut(
-                                   @NotNull final World world, @NotNull final EntityPlayer player,
+    private static void handleHut(@NotNull final World world, @NotNull final EntityPlayer player,
                                    final StructureName sn,
                                    final int rotation, @NotNull final BlockPos buildPos, final boolean mirror)
     {
@@ -261,8 +278,7 @@ public class BuildToolPasteMessage extends AbstractMessage<BuildToolPasteMessage
             return;
         }
 
-        final String hut = sn.getSection();
-        final Block block = Block.getBlockFromName(Constants.MOD_ID + ":blockHut" + hut);
+        final Block block = Block.getBlockFromName(Constants.MOD_ID + ":blockHut" + sn.getSection());
         if (block != null && EventHandler.onBlockHutPlaced(world, player, block, buildPos))
         {
             world.destroyBlock(buildPos, true);

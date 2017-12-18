@@ -4,6 +4,7 @@ import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.LanguageHandler;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.coremod.MineColonies;
+import com.minecolonies.coremod.colony.Structures;
 import com.minecolonies.coremod.creativetab.ModCreativeTabs;
 import com.minecolonies.coremod.network.messages.SaveScanMessage;
 import net.minecraft.entity.player.EntityPlayer;
@@ -111,7 +112,20 @@ public class ItemScanTool extends AbstractItemMinecolonies
      * @param to     Second corner.
      * @param player causing this action.
      */
-    private static void saveStructure(@Nullable final World world, @Nullable final BlockPos from, @Nullable final BlockPos to, @NotNull final EntityPlayer player)
+    public static void saveStructure(@Nullable final World world, @Nullable final BlockPos from, @Nullable final BlockPos to, @NotNull final EntityPlayer player)
+    {
+        saveStructure(world, from, to, player, null);
+    }
+
+    /**
+     * Scan the structure and save it to the disk.
+     *
+     * @param world  Current world.
+     * @param from   First corner.
+     * @param to     Second corner.
+     * @param player causing this action.
+     */
+    public static void saveStructure(@Nullable final World world, @Nullable final BlockPos from, @Nullable final BlockPos to, @NotNull final EntityPlayer player, final String possibleName)
     {
         //todo if on clientSide check if isRemote and if it is -> don't seed message, execute right away.
         if (world == null || from == null || to == null)
@@ -120,9 +134,9 @@ public class ItemScanTool extends AbstractItemMinecolonies
         }
 
         final BlockPos blockpos =
-          new BlockPos(Math.min(from.getX(), to.getX()), Math.min(from.getY(), to.getY()), Math.min(from.getZ(), to.getZ()));
+                new BlockPos(Math.min(from.getX(), to.getX()), Math.min(from.getY(), to.getY()), Math.min(from.getZ(), to.getZ()));
         final BlockPos blockpos1 =
-          new BlockPos(Math.max(from.getX(), to.getX()), Math.max(from.getY(), to.getY()), Math.max(from.getZ(), to.getZ()));
+                new BlockPos(Math.max(from.getX(), to.getX()), Math.max(from.getY(), to.getY()), Math.max(from.getZ(), to.getZ()));
         final BlockPos size = blockpos1.subtract(blockpos).add(1, 1, 1);
 
         final WorldServer worldserver = (WorldServer) world;
@@ -131,12 +145,28 @@ public class ItemScanTool extends AbstractItemMinecolonies
 
         final long currentMillis = System.currentTimeMillis();
         final String currentMillisString = Long.toString(currentMillis);
-        final String fileName = "/minecolonies/scans/" + LanguageHandler.format("item.scepterSteel.scanFormat", "", currentMillisString + ".nbt");
+        final String fileName;
+
+        if(possibleName == null)
+        {
+            fileName = "/minecolonies/scans/" + LanguageHandler.format("item.scepterSteel.scanFormat", "", currentMillisString + ".nbt");
+        }
+        else
+        {
+            fileName = possibleName;
+        }
 
         final Template template = templatemanager.getTemplate(minecraftserver, new ResourceLocation(fileName));
         template.takeBlocksFromWorld(world, blockpos, size, true, Blocks.STRUCTURE_VOID);
         template.setAuthor(Constants.MOD_ID);
 
-        MineColonies.getNetwork().sendTo(new SaveScanMessage(template.writeToNBT(new NBTTagCompound()), currentMillis), (EntityPlayerMP) player);
+        if(possibleName == null)
+        {
+            MineColonies.getNetwork().sendTo(new SaveScanMessage(template.writeToNBT(new NBTTagCompound()), currentMillis), (EntityPlayerMP) player);
+        }
+        else
+        {
+            MineColonies.getNetwork().sendTo(new SaveScanMessage(template.writeToNBT(new NBTTagCompound()), possibleName), (EntityPlayerMP) player);
+        }
     }
 }

@@ -10,6 +10,7 @@ import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.colony.ColonyManager;
 import com.minecolonies.coremod.colony.StructureName;
 import com.minecolonies.coremod.colony.Structures;
+import com.minecolonies.coremod.items.ItemCaliper;
 import com.minecolonies.coremod.items.ItemSupplyCampDeployer;
 import com.minecolonies.coremod.items.ItemSupplyChestDeployer;
 import com.minecolonies.coremod.network.messages.BuildToolPasteMessage;
@@ -164,6 +165,7 @@ public class WindowBuildTool extends AbstractWindowSkeleton
     public enum FreeMode
     {
         SUPPLYSHIP,
+        MOVE,
         SUPPLYCAMP
     }
 
@@ -257,11 +259,6 @@ public class WindowBuildTool extends AbstractWindowSkeleton
     private       DialogDoneCancel confirmDeleteDialog;
 
     /**
-     * Check if the tool is in the static schematic mode.
-     */
-    private boolean staticSchematicMode = false;
-
-    /**
      * Name of the static schematic if existent.
      */
     private String staticSchematicName = "";
@@ -285,7 +282,6 @@ public class WindowBuildTool extends AbstractWindowSkeleton
             this.rotation = rotation;
         }
 
-        staticSchematicMode = true;
         renameButton = findPaneOfTypeByID(BUTTON_RENAME, Button.class);
         deleteButton = findPaneOfTypeByID(BUTTON_DELETE, Button.class);
     }
@@ -304,7 +300,6 @@ public class WindowBuildTool extends AbstractWindowSkeleton
         this.init(pos);
         renameButton = findPaneOfTypeByID(BUTTON_RENAME, Button.class);
         deleteButton = findPaneOfTypeByID(BUTTON_DELETE, Button.class);
-        this.staticSchematicMode = false;
     }
 
     private void init(final BlockPos pos)
@@ -505,6 +500,8 @@ public class WindowBuildTool extends AbstractWindowSkeleton
     @Override
     public void onOpened()
     {
+        Structures.loadScannedStyleMaps();
+
         if(Settings.instance.isStaticSchematicMode())
         {
             sections.add(Structures.SCHEMATICS_PREFIX);
@@ -512,8 +509,6 @@ public class WindowBuildTool extends AbstractWindowSkeleton
         }
         else
         {
-            Structures.loadScannedStyleMaps();
-
             sections.clear();
             final InventoryPlayer inventory = this.mc.player.inventory;
             final List<String> allSections = Structures.getSections();
@@ -889,7 +884,7 @@ public class WindowBuildTool extends AbstractWindowSkeleton
                 new PlacementSettings().setRotation(BlockUtils.getRotation(Settings.instance.getRotation())).setMirror(Settings.instance.getMirror()));
 
         final String md5 = Structures.getMD5(structureName.toString());
-        if (structure.isTemplateMissing() || !structure.isCorrectMD5(md5))
+        if (structure.isTemplateMissing() || (!structure.isCorrectMD5(md5)))
         {
             if (structure.isTemplateMissing())
             {
@@ -966,7 +961,7 @@ public class WindowBuildTool extends AbstractWindowSkeleton
                         Settings.instance.getRotation(),
                         false,
                         Settings.instance.getMirror(),
-                        complete, null));
+                        complete, Settings.instance.getFreeMode()));
             }
             else
             {
@@ -1038,6 +1033,18 @@ public class WindowBuildTool extends AbstractWindowSkeleton
                     Settings.instance.getActiveStructure().getSize(BlockUtils.getRotation(Settings.instance.getRotation()))))
             {
                 pasteNice();
+            }
+            else
+            {
+                LanguageHandler.sendPlayerMessage(Minecraft.getMinecraft().player, "item.supplyCampDeployer.invalid");
+            }
+        }
+        else if (FreeMode.MOVE == Settings.instance.getFreeMode())
+        {
+            if (ItemCaliper.canCampBePlaced(Minecraft.getMinecraft().world, Settings.instance.getPosition(),
+                    Settings.instance.getActiveStructure().getSize(BlockUtils.getRotation(Settings.instance.getRotation()))))
+            {
+                requestScannedSchematic(new StructureName(Settings.instance.getStructureName()), true, false);
             }
             else
             {

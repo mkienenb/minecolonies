@@ -135,7 +135,7 @@ public class WindowClipBoard extends AbstractWindowSkeleton
 
     private ImmutableList<IRequest> getOpenRequests()
     {
-        final ArrayList<IRequest> requests = Lists.newArrayList();
+        List<IRequest> requests = Lists.newArrayList();
         final ColonyView view = ColonyManager.getColonyView(colonyId);
 
         if (view == null)
@@ -151,7 +151,7 @@ public class WindowClipBoard extends AbstractWindowSkeleton
         requestTokens.addAll(retryingRequestResolver.getAllAssignedRequests());
 
         requests.addAll(requestTokens.stream().map(view.getRequestManager()::getRequestForToken).filter(Objects::nonNull).collect(Collectors.toSet()));
-
+        requests = requests.subList(0, Math.min(100, requests.size()));
         final BlockPos playerPos = Minecraft.getMinecraft().player.getPosition();
         requests.sort(Comparator.comparing((IRequest request) -> request.getRequester().getDeliveryLocation().getInDimensionLocation()
                 .getDistance(playerPos.getX(), playerPos.getY(), playerPos.getZ()))

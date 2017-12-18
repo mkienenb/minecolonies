@@ -1,5 +1,6 @@
 package com.minecolonies.coremod.network.messages;
 
+import com.minecolonies.api.util.LanguageHandler;
 import com.minecolonies.api.util.Log;
 import com.minecolonies.coremod.util.ClientStructureWrapper;
 import io.netty.buffer.ByteBuf;
@@ -22,8 +23,20 @@ import java.io.IOException;
  */
 public class SaveScanMessage implements IMessage, IMessageHandler<SaveScanMessage, IMessage>
 {
+    /**
+     * The compound with the scan.
+     */
     private NBTTagCompound nbttagcompound;
-    private long           currentMillis;
+
+    /**
+     * The current milliseconds.
+     */
+    private long           currentMillis = -1;
+
+    /**
+     * A static name to be used when available.
+     */
+    private String possibleName;
 
     /**
      * Public standard constructor.
@@ -42,6 +55,18 @@ public class SaveScanMessage implements IMessage, IMessageHandler<SaveScanMessag
     public SaveScanMessage(final NBTTagCompound nbttagcompound, final long currentMillis)
     {
         this.currentMillis = currentMillis;
+        this.nbttagcompound = nbttagcompound;
+    }
+
+    /**
+     * Send a scan compound to the client.
+     *
+     * @param nbttagcompound the stream.
+     * @param possibleName  manual name for the schematic.
+     */
+    public SaveScanMessage(final NBTTagCompound nbttagcompound, final String possibleName)
+    {
+        this.possibleName = possibleName;
         this.nbttagcompound = nbttagcompound;
     }
 
@@ -68,13 +93,27 @@ public class SaveScanMessage implements IMessage, IMessageHandler<SaveScanMessag
             }
         }
         currentMillis = buf.readLong();
+
+        if(currentMillis == -1)
+        {
+            possibleName = ByteBufUtils.readUTF8String(buf);
+        }
     }
 
     @Override
     public void toBytes(@NotNull final ByteBuf buf)
     {
         ByteBufUtils.writeTag(buf, nbttagcompound);
-        buf.writeLong(currentMillis);
+
+        if(currentMillis == -1)
+        {
+            buf.writeLong(-1);
+            ByteBufUtils.writeUTF8String(buf, possibleName);
+        }
+        else
+        {
+            buf.writeLong(currentMillis);
+        }
     }
 
     @Nullable
@@ -83,7 +122,8 @@ public class SaveScanMessage implements IMessage, IMessageHandler<SaveScanMessag
     {
         if (message.nbttagcompound != null)
         {
-            ClientStructureWrapper.handleSaveScanMessage(message.nbttagcompound, message.currentMillis);
+            ClientStructureWrapper.handleSaveScanMessage(message.nbttagcompound,
+                    message.currentMillis > 0 ? LanguageHandler.format("item.scepterSteel.scanFormat", message.currentMillis) : message.possibleName);
         }
         return null;
     }

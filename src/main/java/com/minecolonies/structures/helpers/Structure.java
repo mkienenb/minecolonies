@@ -131,7 +131,6 @@ public class Structure
         InputStream inputStream = null;
         try
         {
-
             //Try the cache first
             if (Structures.hasMD5(correctStructureName))
             {

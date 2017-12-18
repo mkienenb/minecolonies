@@ -37,10 +37,10 @@ public final class ClientStructureWrapper
      * @param nbttagcompound compound to store.
      * @param currentMillis  milli seconds for fileName.
      */
-    public static void handleSaveScanMessage(final NBTTagCompound nbttagcompound, final long currentMillis)
+    public static void handleSaveScanMessage(final NBTTagCompound nbttagcompound, final String name)
     {
         final StructureName structureName =
-          new StructureName(Structures.SCHEMATICS_SCAN, "new", LanguageHandler.format("item.scepterSteel.scanFormat", currentMillis));
+          new StructureName(Structures.SCHEMATICS_SCAN, "new", name);
         final File file = new File(Structure.getClientSchematicsFolder(), structureName.toString() + Structures.SCHEMATIC_EXTENSION);
         checkDirectory(file.getParentFile());
 

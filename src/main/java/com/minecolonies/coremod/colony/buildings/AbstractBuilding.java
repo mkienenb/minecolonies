@@ -34,6 +34,7 @@ import com.minecolonies.coremod.util.StructureWrapper;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryHelper;
@@ -43,6 +44,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityChest;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -98,21 +100,25 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
      */
     @NotNull
     private static final Map<String, Class<?>>   nameToClassMap               = new TreeMap<>();
+
     /**
      * Map to resolve classes to name.
      */
     @NotNull
     private static final Map<Class<?>, String>   classToNameMap               = new HashMap<>();
+
     /**
      * Map to resolve block to building class.
      */
     @NotNull
     private static final Map<Class<?>, Class<?>> blockClassToBuildingClassMap = new HashMap<>();
+
     /**
      * Map to resolve classNameHash to class.
      */
     @NotNull
     private static final Map<Integer, Class<?>>  classNameHashToViewClassMap  = new HashMap<>();
+
     /*
      * Add all the mappings.
      */
@@ -135,24 +141,29 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
         addMapping("Barracks", BuildingBarracks.class, BuildingBarracks.View.class, BlockHutBarracks.class);
         addMapping("BarracksTower", BuildingBarracksTower.class, BuildingBarracksTower.View.class, BlockHutBarracksTower.class);
     }
+
     /**
      * List of items the worker should keep.
      */
     protected final Map<Predicate<ItemStack>, Integer> keepX = new HashMap<>();
+
     /**
      * A list which contains the position of all containers which belong to the
      * worker building.
      */
     private final List<BlockPos> containerList = new ArrayList<>();
+
     /**
      * The location of the building.
      */
     private final BlockPos location;
+
     /**
      * The colony the building belongs to.
      */
     @NotNull
     private final Colony colony;
+
     /**
      * List of all open requests made by this building.
      * <p>
@@ -161,6 +172,7 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
      */
     @NotNull
     private final Map<TypeToken, Collection<IToken>> openRequests = new HashMap<>();
+
     /**
      * Keeps track of which citizen created what request. Citizen -> Request direction.
      */
@@ -171,38 +183,47 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
      */
     private final HashMap<Integer, Collection<IToken>> citizensByCompletedRequests = new HashMap<>();
 
+
     /**
      * Keeps track of which citizen created what request. Request -> Citizen direction.
      */
     private final HashMap<IToken, Integer> requestsByCitizen = new HashMap<>();
+
     /**
      * The ID of the building. Needed in the request system to identify it.
      */
     private IRequester requester;
+
     /**
      * The tileEntity of the building.
      */
     private TileEntityColonyBuilding tileEntity;
+
     /**
      * The level of the building.
      */
     private int buildingLevel = 0;
+
     /**
      * The rotation of the building.
      */
     private int rotation = 0;
+
     /**
      * The mirror of the building.
      */
     private boolean isMirrored = false;
+
     /**
      * The building style.
      */
     private String style = "wooden";
+
     /**
      * Made to check if the building has to update the server/client.
      */
     private boolean dirty = false;
+
     /**
      * Corners of the building.
      */
@@ -210,18 +231,26 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
     private int cornerX2;
     private int cornerZ1;
     private int cornerZ2;
+
     /**
      * Priority of the building in the pickUpList.
      */
     private int pickUpPriority = 1;
+
     /**
      * Is being gathered right now
      */
     private boolean beingGathered = false;
+
     /**
      * Height of the building.
      */
     private int height;
+
+    /**
+     * Base y of the building.
+     */
+    private int baseY;
 
     /**
      * Constructor for a AbstractBuilding.
@@ -402,6 +431,11 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
         {
             this.pickUpPriority = compound.getInteger(TAG_PRIO);
         }
+
+        if(compound.hasKey(TAG_BASE_Y))
+        {
+            this.baseY = compound.getInteger(TAG_BASE_Y);
+        }
     }
 
     /**
@@ -519,6 +553,7 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
               workOrder.getRotation(parent.getWorld()),
               workOrder.isMirrored());
             building.setCorners(corners.getFirst().getFirst(), corners.getFirst().getSecond(), corners.getSecond().getFirst(), corners.getSecond().getSecond());
+            building.setBasePos(building.location.getY() - wrapper.getOffset().getY());
             building.setHeight(wrapper.getHeight());
             ConstructionTapeHelper.placeConstructionTape(building.getLocation(), corners, parent.getWorld());
         }
@@ -559,6 +594,16 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
     public void setHeight(final int height)
     {
         this.height = height;
+    }
+
+    /**
+     * Set the the lowest y position of the building.
+     *
+     * @param y the base y to set.
+     */
+    public void setBasePos(final int y)
+    {
+        this.baseY = y;
     }
 
     /**
@@ -682,6 +727,8 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
         writeRequestSystemToNBT(compound);
 
         compound.setInteger(TAG_PRIO, this.pickUpPriority);
+
+        compound.setInteger(TAG_BASE_Y, this.baseY);
     }
 
     private void writeRequestSystemToNBT(NBTTagCompound compound)
@@ -835,6 +882,10 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
                 }
             }
         }
+
+        getColony().getWorld().getEntitiesWithinAABB(Entity.class,
+                new AxisAlignedBB(new BlockPos(cornerX1, baseY ,cornerZ1), new BlockPos(cornerX2, baseY + getHeight() , cornerZ2)), entity -> !(entity instanceof EntityPlayer))
+                .forEach(entity -> entity.attackEntityFrom(DamageSource.IN_WALL, 1000));
     }
 
     /**
@@ -1033,12 +1084,22 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
 
     /**
      * Get the height of the building.
-     * @return the height..
+     * @return the height.
      */
     public int getHeight()
     {
         return this.height;
     }
+
+    /**
+     * Get the baseY of the building.
+     * @return the lowest y.
+     */
+    public int getBaseY()
+    {
+        return this.baseY;
+    }
+
 
     /**
      * Called upon completion of an upgrade process.
@@ -1059,6 +1120,7 @@ public abstract class AbstractBuilding implements IRequestResolverProvider, IReq
           workOrder.isMirrored());
         this.height = wrapper.getHeight();
         this.setCorners(corners.getFirst().getFirst(), corners.getFirst().getSecond(), corners.getSecond().getFirst(), corners.getSecond().getSecond());
+        this.baseY = location.getY() - wrapper.getOffset().getY();
     }
 
     /**

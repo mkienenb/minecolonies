@@ -1,17 +1,23 @@
 package com.minecolonies.coremod.items;
 
 import com.minecolonies.api.util.LanguageHandler;
+import com.minecolonies.coremod.MineColonies;
+import com.minecolonies.coremod.client.gui.WindowBuildTool;
+import com.minecolonies.coremod.colony.buildings.AbstractBuilding;
 import com.minecolonies.coremod.creativetab.ModCreativeTabs;
+import com.minecolonies.coremod.tileentities.TileEntityColonyBuilding;
 import net.minecraft.entity.ai.attributes.IAttribute;
 import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.ai.attributes.RangedAttribute;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Caliper Item class. Calculates distances, areas, and volumes.
@@ -60,7 +66,136 @@ public class ItemCaliper extends AbstractItemMinecolonies
                                        final float hitY,
                                        final float hitZ)
     {
-        // if client world, do nothing
+        // in the message as the supplycamp, have the "enumType" and then delete the item, todo delete schematic.
+        //
+        //todo make own items.
+        final ItemStack stack = player.getHeldItem(hand);
+        if (!stack.hasTagCompound())
+        {
+            stack.setTagCompound(new NBTTagCompound());
+        }
+        final NBTTagCompound compound = stack.getTagCompound();
+
+        if (!compound.hasKey("schematic"))
+        {
+            if (!worldIn.isRemote)
+            {
+                final TileEntity entity = worldIn.getTileEntity(pos);
+
+                if (entity instanceof TileEntityColonyBuilding)
+                {
+                    final AbstractBuilding building = ((TileEntityColonyBuilding) entity).getBuilding();
+                    final Tuple<Tuple<Integer, Integer>, Tuple<Integer, Integer>> corners = building.getCorners();
+                    LanguageHandler.sendPlayerMessage(player, "Click again to deconstruct it.");
+
+                    final String name = building.getStyle() + "/" + building.getSchematicName() + building.getBuildingLevel();
+                    ItemScanTool.saveStructure(worldIn,
+                            new BlockPos(corners.getFirst().getFirst(), building.getBaseY(), corners.getSecond().getFirst()),
+                            new BlockPos(corners.getFirst().getSecond(), building.getBaseY() + building.getHeight(), corners.getSecond().getSecond()), player, name);
+                    compound.setString("schematic", "scans/new/" + name);
+                    return EnumActionResult.SUCCESS;
+                }
+            }
+        }
+        else if(!compound.hasKey("deconstructed"))
+        {
+            if (!worldIn.isRemote)
+            {
+                final TileEntity entity = worldIn.getTileEntity(pos);
+
+                if (entity instanceof TileEntityColonyBuilding)
+                {
+                    ((TileEntityColonyBuilding) entity).getBuilding().deconstruct();
+                    compound.setBoolean("deconstructed", true);
+                    return EnumActionResult.SUCCESS;
+                }
+            }
+        }
+        else
+        {
+            if (worldIn.isRemote)
+            {
+                placeCopiedBuilding(pos, compound.getString("schematic"));
+            }
+        }
+
+        return EnumActionResult.SUCCESS;
+    }
+
+    @NotNull
+    @Override
+    public ActionResult<ItemStack> onItemRightClick(final World worldIn, final EntityPlayer player, final EnumHand hand)
+    {
+        final ItemStack stack = player.getHeldItem(hand);
+        if (!stack.hasTagCompound())
+        {
+            stack.setTagCompound(new NBTTagCompound());
+        }
+
+        final NBTTagCompound compound = stack.getTagCompound();
+        if (compound.hasKey("schematic") && worldIn.isRemote)
+        {
+            placeCopiedBuilding(null, compound.getString("schematic"));
+            return new ActionResult<>(EnumActionResult.SUCCESS, stack);
+        }
+        return new ActionResult<>(EnumActionResult.FAIL, stack);
+    }
+
+    private void placeCopiedBuilding(@Nullable final BlockPos pos, @NotNull final String name)
+    {
+        if(pos == null)
+        {
+            MineColonies.proxy.openBuildToolWindow(null, name, 0, WindowBuildTool.FreeMode.MOVE);
+            return;
+        }
+        MineColonies.proxy.openBuildToolWindow(pos, name, 0, WindowBuildTool.FreeMode.MOVE);
+    }
+
+    /**
+     * Checks if the camp can be placed.
+     * @param world the world.
+     * @param pos the position.
+     * @param size the size.
+     * @return true if so.
+     */
+    @NotNull
+    public static boolean canCampBePlaced(@NotNull final World world, @NotNull final BlockPos pos, final BlockPos size)
+    {
+        for(int z = pos.getZ() - size.getZ() / 2 + 1; z < pos.getZ() + size.getZ() / 2 + 1; z++)
+        {
+            for(int x = pos.getX() - size.getX() / 2 + 1; x < pos.getX() + size.getX() / 2 + 1; x++)
+            {
+                if(!world.isAirBlock(new BlockPos(x, pos.getY(), z)))
+                {
+                    return false;
+                }
+            }
+        }
+
+        for(int z = pos.getZ() - size.getZ() / 2 + 1; z < pos.getZ() + size.getZ() / 2 + 1; z++)
+        {
+            for(int x = pos.getX() - size.getX() / 2 + 1; x < pos.getX() + size.getX() / 2 + 1; x++)
+            {
+                if(!world.isAirBlock(new BlockPos(x, pos.getY()+1, z)))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+
+    private EnumActionResult save(final EntityPlayer player,
+            final World worldIn,
+            final BlockPos pos,
+            final EnumHand hand,
+            final EnumFacing facing,
+            final float hitX,
+            final float hitY,
+            final float hitZ)
+    {
+// if client world, do nothing
         if (worldIn.isRemote)
         {
             return EnumActionResult.FAIL;
