@@ -67,8 +67,6 @@ public class ItemCaliper extends AbstractItemMinecolonies
                                        final float hitY,
                                        final float hitZ)
     {
-        // in the message as the supplycamp, have the "enumType" and then delete the item, todo delete schematic.
-        //
         //todo make own items.
         final ItemStack stack = player.getHeldItem(hand);
         if (!stack.hasTagCompound())
@@ -86,6 +84,12 @@ public class ItemCaliper extends AbstractItemMinecolonies
                 if (entity instanceof TileEntityColonyBuilding)
                 {
                     final AbstractBuilding building = ((TileEntityColonyBuilding) entity).getBuilding();
+
+                    if(building.getBaseY() == 0)
+                    {
+                        LanguageHandler.sendPlayerMessage(player, "This is an old building, please repair before copying.");
+                        return EnumActionResult.FAIL;
+                    }
                     final Tuple<Tuple<Integer, Integer>, Tuple<Integer, Integer>> corners = building.getCorners();
 
 
