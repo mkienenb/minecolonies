@@ -1,5 +1,6 @@
 package com.minecolonies.coremod.items;
 
+import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.LanguageHandler;
 import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.client.gui.WindowBuildTool;
@@ -86,13 +87,15 @@ public class ItemCaliper extends AbstractItemMinecolonies
                 {
                     final AbstractBuilding building = ((TileEntityColonyBuilding) entity).getBuilding();
                     final Tuple<Tuple<Integer, Integer>, Tuple<Integer, Integer>> corners = building.getCorners();
-                    LanguageHandler.sendPlayerMessage(player, "Click again to deconstruct it.");
+
 
                     final String name = building.getStyle() + "/" + building.getSchematicName() + building.getBuildingLevel();
                     ItemScanTool.saveStructure(worldIn,
                             new BlockPos(corners.getFirst().getFirst(), building.getBaseY(), corners.getSecond().getFirst()),
                             new BlockPos(corners.getFirst().getSecond(), building.getBaseY() + building.getHeight(), corners.getSecond().getSecond()), player, name);
                     compound.setString("schematic", "scans/new/" + name);
+                    BlockPosUtil.writeToNBT(compound, "pos", building.getID());
+                    LanguageHandler.sendPlayerMessage(player, "Click again to deconstruct it.");
                     return EnumActionResult.SUCCESS;
                 }
             }
@@ -105,6 +108,12 @@ public class ItemCaliper extends AbstractItemMinecolonies
 
                 if (entity instanceof TileEntityColonyBuilding)
                 {
+                    final BlockPos id = BlockPosUtil.readFromNBT(compound, "pos");
+                    if(!id.equals(((TileEntityColonyBuilding) entity).getBuilding().getID()))
+                    {
+                        LanguageHandler.sendPlayerMessage(player, "Trying to cheet, huh? That's another building!");
+                        return EnumActionResult.FAIL;
+                    }
                     ((TileEntityColonyBuilding) entity).getBuilding().deconstruct();
                     compound.setBoolean("deconstructed", true);
                     return EnumActionResult.SUCCESS;
