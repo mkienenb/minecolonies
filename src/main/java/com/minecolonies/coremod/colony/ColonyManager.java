@@ -8,6 +8,8 @@ import com.minecolonies.api.compatibility.CompatabilityManager;
 import com.minecolonies.api.compatibility.ICompatabilityManager;
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.*;
+import com.minecolonies.api.util.LanguageHandler;
+import com.minecolonies.api.util.Log;
 import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.achievements.ModAchievements;
 import com.minecolonies.coremod.blocks.AbstractBlockHut;
@@ -35,14 +37,13 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
-import static com.minecolonies.api.util.MathUtils.NANO_TIME_DIVIDER;
 import static com.minecolonies.api.util.constant.Constants.BLOCKS_PER_CHUNK;
 import static com.minecolonies.api.util.constant.Constants.HALF_A_CIRCLE;
 import static com.minecolonies.api.util.constant.NbtTagConstants.*;
@@ -57,11 +58,15 @@ public final class ColonyManager
      * Distance NBT tag.
      */
     private static final String TAG_DISTANCE = "dist";
+    /**
+     * Tag storing the amount of colonies to NBT.
+     */
+    private static final String TAG_NEW_COLONIES = "amountOfColonies";
 
     /**
      * The file name of the minecolonies path.
      */
-    private static final String FILENAME_MINECOLONIES_PATH = "minecolonies";
+    public static final String FILENAME_MINECOLONIES_PATH = "minecolonies";
 
     /**
      * The file name of the minecolonies.
@@ -71,7 +76,12 @@ public final class ColonyManager
     /**
      * The file name pattern of the minecolonies backup.
      */
-    private static final String FILENAME_MINECOLONIES_BACKUP = "colonies-%s.dat";
+    private static final String FILENAME_MINECOLONIES_BACKUP = "colonies-%s.zip";
+
+    /**
+     * Colony filename.
+     */
+    public static final String FILENAME_COLONY = "colony%d.dat";
 
     /**
      * Only store the map to nbt after x elements again.
@@ -105,6 +115,11 @@ public final class ColonyManager
      * Static variable defining after how many elements to log.
      */
     private static final int LOG_PER_X = 100;
+
+    /**
+     * Buffer for which colonies to move to the save file.
+     */
+    private static final int BUFFER = 10;
 
     /**
      * Amount of worlds loaded.
@@ -174,6 +189,7 @@ public final class ColonyManager
         Log.getLogger().info(String.format("New Colony Id: %d by %s", colony.getID(), player.getName()));
 
         ColonyManager.notifyChunksInRange(colony.getWorld(), true, colony.getID(), colony.getCenter(), colony.getDimension());
+        ColonyManager.markDirty();
         return colony;
     }
 
@@ -825,6 +841,11 @@ public final class ColonyManager
 
         @NotNull final File file = getSaveLocation();
         saveNBTToPath(file, compound);
+        @NotNull final File saveDir = new File(DimensionManager.getWorld(0).getSaveHandler().getWorldDirectory(), FILENAME_MINECOLONIES_PATH);
+        for(final Colony colony: colonies)
+        {
+            saveNBTToPath(new File(saveDir, String.format(FILENAME_COLONY, colony.getID())), colony.getColonyTag());
+        }
 
         saveNeeded = false;
     }
@@ -837,7 +858,6 @@ public final class ColonyManager
     public static void writeToNBT(@NotNull final NBTTagCompound compound)
     {
         //Get the colonies NBT tags and store them in a NBTTagList.
-        compound.setTag(TAG_COLONIES, colonies.stream().map(Colony::getColonyTag).collect(NBTUtils.toNBTTagList()));
         if (serverUUID != null)
         {
             compound.setUniqueId(TAG_UUID, serverUUID);
@@ -859,6 +879,7 @@ public final class ColonyManager
         removedElements = 0;
 
         compound.setBoolean(TAG_DISTANCE, true);
+        compound.setInteger(TAG_NEW_COLONIES, colonies.size());
     }
 
     /**
@@ -880,7 +901,7 @@ public final class ColonyManager
      * @param file     The destination file to write the data to.
      * @param compound The NBTTagCompound to write to the file.
      */
-    private static void saveNBTToPath(@Nullable final File file, @NotNull final NBTTagCompound compound)
+    public static void saveNBTToPath(@Nullable final File file, @NotNull final NBTTagCompound compound)
     {
         try
         {
@@ -948,7 +969,27 @@ public final class ColonyManager
                 if (data != null)
                 {
                     readFromNBT(data, world);
+
+                    if (data.hasKey(TAG_NEW_COLONIES))
+                    {
+                        int size = data.getInteger(TAG_NEW_COLONIES);
+
+                        @NotNull final File saveDir = new File(DimensionManager.getWorld(0).getSaveHandler().getWorldDirectory(), FILENAME_MINECOLONIES_PATH);
+                        for (int colonyId = 0; colonyId <= size; colonyId++)
+                        {
+                            @Nullable final NBTTagCompound colonyData = loadNBTFromPath(new File(saveDir, String.format(FILENAME_COLONY, colonyId)));
+                            if (colonyData != null)
+                            {
+                                @NotNull final Colony colony = Colony.loadColony(colonyData, world);
+                                colonies.add(colony);
+
+                                addColonyByWorld(colony);
+                            }
+                        }
+                    }
+                    Log.getLogger().info(String.format("Loaded %d colonies", colonies.size()));
                 }
+
                 if (serverUUID == null)
                 {
                     serverUUID = UUID.randomUUID();
@@ -978,28 +1019,61 @@ public final class ColonyManager
             saveColonies();
         }
 
-        @NotNull final File file = getSaveLocation();
-        @NotNull final File targetFile = getBackupSaveLocation(new Date());
-        if (!file.exists())
+        try(FileOutputStream fos = new FileOutputStream(getBackupSaveLocation(new Date())))
         {
-            return true;
+            @NotNull final File saveDir = new File(DimensionManager.getWorld(0).getSaveHandler().getWorldDirectory(), FILENAME_MINECOLONIES_PATH);
+            final ZipOutputStream zos = new ZipOutputStream(fos);
+
+            for (int i = 0; i < colonies.size() + BUFFER; i++)
+            {
+                @NotNull final File file = new File(saveDir, String.format(FILENAME_COLONY, i));
+                if (file.exists())
+                {
+                    addToZipFile(String.format(FILENAME_COLONY, i), zos, saveDir);
+                }
+            }
+            addToZipFile(getSaveLocation().getName(), zos, saveDir);
+
+            zos.close();
+            fos.close();
         }
-        else if (targetFile.exists())
+        catch (final Exception e)
         {
+            /**
+             * Intentionally not being thrown.
+             */
+            Log.getLogger().warn("Unable to backup colony data, please contact an administrator");
             return false;
         }
 
-        try
-        {
-            Files.copy(file.toPath(), targetFile.toPath());
-        }
-        catch (final IOException e)
-        {
-            e.printStackTrace();
-            return false;
-        }
+        return true;
+    }
 
-        return targetFile.exists();
+    public static void addToZipFile(final String fileName, final ZipOutputStream zos, final File folder)
+    {
+        final File file = new File(folder, fileName);
+        try(FileInputStream fis = new FileInputStream(file))
+        {
+            final ZipEntry zipEntry = new ZipEntry(fileName);
+            zos.putNextEntry(zipEntry);
+
+            final byte[] bytes = new byte[1024];
+            int length;
+            while ((length = fis.read(bytes)) >= 0)
+            {
+                zos.write(bytes, 0, length);
+            }
+
+            zos.closeEntry();
+            fis.close();
+        }
+        catch (Exception e)
+        {
+            /**
+             * Intentionally not being thrown.
+             */
+            Log.getLogger().warn("Error packing " + fileName + " into the zip.");
+        }
     }
 
     /**
@@ -1053,13 +1127,16 @@ public final class ColonyManager
                     .collect(Collectors.toList()));
         }
 
-        final NBTTagList colonyTags = compound.getTagList(TAG_COLONIES, NBT.TAG_COMPOUND);
-        for (int i = 0; i < colonyTags.tagCount(); ++i)
+        if(!compound.hasKey(TAG_NEW_COLONIES))
         {
-            @NotNull final Colony colony = Colony.loadColony(colonyTags.getCompoundTagAt(i), world);
-            colonies.add(colony);
-            addColonyByWorld(colony);
-            ColonyManager.notifyChunksInRange(colony.getWorld(), true, colony.getID(), colony.getCenter(), colony.getDimension());
+            final NBTTagList colonyTags = compound.getTagList(TAG_COLONIES, NBT.TAG_COMPOUND);
+            for (int i = 0; i < colonyTags.tagCount(); ++i)
+            {
+                @NotNull final Colony colony = Colony.loadColony(colonyTags.getCompoundTagAt(i), world);
+                colonies.add(colony);
+                addColonyByWorld(colony);
+                ColonyManager.notifyChunksInRange(colony.getWorld(), true, colony.getID(), colony.getCenter(), colony.getDimension());
+            }
         }
 
         if (compound.hasUniqueId(TAG_UUID))
