@@ -945,7 +945,10 @@ public final class ColonyManager
      */
     public static void onWorldTick(@NotNull final TickEvent.WorldTickEvent event)
     {
-        loadChunkAndNotify(event.world);
+        if(event.phase == TickEvent.Phase.END)
+        {
+            loadChunkAndNotify(event.world);
+        }
         getColonies(event.world).forEach(c -> c.onWorldTick(event));
     }
 
