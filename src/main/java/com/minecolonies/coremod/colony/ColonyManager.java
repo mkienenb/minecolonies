@@ -252,11 +252,6 @@ public final class ColonyManager
      */
     private static void loadChunkAndNotify(final World world)
     {
-        if(world.provider.getDimension() != 0)
-        {
-            return;
-        }
-        
         if(!ownedChunks.isEmpty())
         {
             final ChunkPos storage = ownedChunks.keySet().iterator().next();
@@ -945,7 +940,7 @@ public final class ColonyManager
      */
     public static void onWorldTick(@NotNull final TickEvent.WorldTickEvent event)
     {
-        if(event.phase == TickEvent.Phase.END)
+        if(!(event.world instanceof WorldServerMulti))
         {
             loadChunkAndNotify(event.world);
         }
