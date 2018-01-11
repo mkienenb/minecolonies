@@ -252,6 +252,11 @@ public final class ColonyManager
      */
     private static void loadChunkAndNotify(final World world)
     {
+        if(world.provider.getDimension() != 0)
+        {
+            return;
+        }
+        
         if(!ownedChunks.isEmpty())
         {
             final ChunkPos storage = ownedChunks.keySet().iterator().next();
