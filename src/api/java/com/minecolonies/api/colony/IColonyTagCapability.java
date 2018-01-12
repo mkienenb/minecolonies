@@ -99,7 +99,10 @@ public interface IColonyTagCapability
         @Override
         public IColonyTagCapability removeColony(final int id)
         {
-            colonies.remove(id);
+            if(colonies.contains(id))
+            {
+                colonies.remove(new Integer(id));
+            }
             if(owningColony == id)
             {
                 this.owningColony = 0;
