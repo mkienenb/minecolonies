@@ -380,6 +380,7 @@ public class Configurations
         @Config.Comment("Female first names to be used for colonists")
         public String[] femaleFirstNames = new String[]
                                              {
+                                               "Octarina", ## added by Patron: Zyx
                                                "Aaliyah",
                                                "Abigail",
                                                "Adalyn",
