@@ -197,6 +197,7 @@ public class Configurations
         @Config.Comment("Male first names to be used for colonists")
         public String[] maleFirstNames = new String[]
                                            {
+                                             "St. John", ## added by Patron: Zyx
                                              "Aaron",
                                              "Adam",
                                              "Adrian",
@@ -570,6 +571,7 @@ public class Configurations
         @Config.Comment("Last names to be used for colonists")
         public String[] lastNames = new String[]
                                       {
+                                        "Notafakename", ## added by Patron: Zyx
                                         "Brown",
                                         "Clark",
                                         "Fletcher",
