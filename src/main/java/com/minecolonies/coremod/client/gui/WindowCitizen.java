@@ -597,7 +597,7 @@ public class WindowCitizen extends AbstractWindowSkeleton
                 findPaneOfTypeByID(VIEW_PAGES, SwitchView.class).previousView();
                 break;
             case INVENTORY_BUTTON_ID:
-                MineColonies.getNetwork().sendToServer(new OpenInventoryMessage(citizen));
+                MineColonies.getNetwork().sendToServer(new OpenInventoryMessage(citizen.getName(), citizen.getEntityId()));
                 break;
             case REQUEST_DETAIL:
                 detailedClicked(button);
@@ -646,6 +646,7 @@ public class WindowCitizen extends AbstractWindowSkeleton
 
         if (getOpenRequestsOfCitizen().size() > row && row >= 0)
         {
+            button.disable();
             @NotNull final IRequest tRequest = getOpenRequestsOfCitizen().get(row);
 
             if (!(tRequest.getRequest() instanceof IDeliverable))
@@ -678,6 +679,7 @@ public class WindowCitizen extends AbstractWindowSkeleton
             }
             MineColonies.getNetwork().sendToServer(new TransferItemsToCitizenRequestMessage(citizen, itemStack, isCreative ? amount : count, citizen.getColonyId()));
             MineColonies.getNetwork().sendToServer(new UpdateRequestStateMessage(citizen.getColonyId(), request.getToken(), RequestState.OVERRULED, itemStack));
+
         }
     }
 }
