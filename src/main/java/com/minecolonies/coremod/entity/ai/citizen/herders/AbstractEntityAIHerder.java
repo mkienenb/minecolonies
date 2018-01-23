@@ -491,6 +491,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
             new DamageSource(worker.getName());
 
             worker.swingArm(EnumHand.MAIN_HAND);
+            System.out.println("RAN");
             animal.attackEntityFrom(new DamageSource(worker.getName()), (float) BUTCHERING_ATTACK_DAMAGE);
 
             worker.getHeldItemMainhand().damageItem(1, animal);
