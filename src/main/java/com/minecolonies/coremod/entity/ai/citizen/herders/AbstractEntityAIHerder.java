@@ -132,6 +132,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
         }
         else if (maxAnimals())
         {
+            System.out.println("HERDER_BUTCHER");
             return HERDER_BUTCHER;
         }
         else if (numOfBreedableAnimals >= NUM_OF_ANIMALS_TO_BREED && hasBreedingItem)
