@@ -405,9 +405,10 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
     {
         if (getOwnBuilding() != null)
         {
+            System.out.println("GETTING MAX ANIMALS");
             final int numOfAnimals = searchForAnimals().size();
             final int maxAnimals = getOwnBuilding().getBuildingLevel() * getMaxAnimalMultiplier();
-
+            System.out.println("MAX ANIMALS: " + (numOfAnimals > maxAnimals));
             return numOfAnimals > maxAnimals;
         }
         return true;
