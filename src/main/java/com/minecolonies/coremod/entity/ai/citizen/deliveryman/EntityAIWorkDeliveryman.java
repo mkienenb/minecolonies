@@ -6,6 +6,7 @@ import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.Delivery;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.configuration.Configurations;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.blockout.Log;
@@ -13,7 +14,6 @@ import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.buildings.*;
 import com.minecolonies.coremod.colony.jobs.JobDeliveryman;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIInteract;
-import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.coremod.entity.ai.util.AIState;
 import com.minecolonies.coremod.entity.ai.util.AITarget;
 import com.minecolonies.coremod.tileentities.TileEntityColonyBuilding;
@@ -295,16 +295,16 @@ public class EntityAIWorkDeliveryman extends AbstractEntityAIInteract<JobDeliver
     private BlockPos getWeightedRandom()
     {
         double completeWeight = 0.0;
-        for (AbstractBuilding building : worker.getColony().getBuildingManager().getBuildings().values())
+        for (final AbstractBuilding building : worker.getColony().getBuildingManager().getBuildings().values())
         {
             if (!building.isBeingGathered())
             {
                 completeWeight += building.getPickUpPriority();
             }
         }
-        double r = Math.random() * completeWeight;
+        final double r = Math.random() * completeWeight;
         double countWeight = 0.0;
-        for (AbstractBuilding building : worker.getColony().getBuildingManager().getBuildings().values())
+        for (final AbstractBuilding building : worker.getColony().getBuildingManager().getBuildings().values())
         {
             if (!building.isBeingGathered())
             {
@@ -361,7 +361,7 @@ public class EntityAIWorkDeliveryman extends AbstractEntityAIInteract<JobDeliver
 
         finallyAssignedTokens.forEach(iToken -> worker.getColony().getRequestManager().reassignRequest(iToken, ImmutableList.of()));
 
-        if (job.getReturning())
+        if (job.isReturning())
         {
             job.setReturning(false);
         }
@@ -400,13 +400,13 @@ public class EntityAIWorkDeliveryman extends AbstractEntityAIInteract<JobDeliver
      */
     private AIState deliver()
     {
-        if (job.getReturning())
+        if (job.isReturning())
         {
             return DUMPING;
         }
 
         final BuildingDeliveryman deliveryHut = (getOwnBuilding() instanceof BuildingDeliveryman) ? (BuildingDeliveryman) getOwnBuilding() : null;
-        ILocation buildingToDeliver = deliveryHut == null ? null : deliveryHut.getBuildingToDeliver();
+        final ILocation buildingToDeliver = deliveryHut == null ? null : deliveryHut.getBuildingToDeliver();
 
         if (deliveryHut == null)
         {
@@ -513,7 +513,7 @@ public class EntityAIWorkDeliveryman extends AbstractEntityAIInteract<JobDeliver
             final IRequest<? extends Delivery> request = job.getCurrentTask();
             if (request != null)
             {
-                if (job.getReturning())
+                if (job.isReturning())
                 {
                     return DUMPING;
                 }
@@ -595,7 +595,7 @@ public class EntityAIWorkDeliveryman extends AbstractEntityAIInteract<JobDeliver
             ((BuildingDeliveryman) ownBuilding).setBuildingToDeliver(null);
             return GATHERING;
         }
-        else if (job.getReturning())
+        else if (job.isReturning())
         {
             ((BuildingDeliveryman) ownBuilding).setBuildingToDeliver(null);
             return DUMPING;

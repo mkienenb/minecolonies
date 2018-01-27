@@ -27,6 +27,11 @@ public final class TeleportToColony
     private static final String NO_TOWNHALL      = "Target colony has no town hall, can't teleport.";
 
     /**
+     * The minimum valid colony id.
+     */
+    private static final int MIN_COLONY_ID       = 1;
+
+    /**
      * Private constructor to hide the implicit public one.
      */
     private TeleportToColony()
@@ -116,9 +121,9 @@ public final class TeleportToColony
         if (dimension != colonyDimension)
         {
             playerToTeleport.sendMessage(new TextComponentString("Buckle up buttercup, this ain't no joy ride!!!"));
-            EntityPlayerMP entityPlayerMP = (EntityPlayerMP) sender;
-            MinecraftServer server = sender.getEntityWorld().getMinecraftServer();
-            WorldServer worldServer = server.getWorld(colonyDimension);
+            final EntityPlayerMP entityPlayerMP = (EntityPlayerMP) sender;
+            final MinecraftServer server = sender.getEntityWorld().getMinecraftServer();
+            final WorldServer worldServer = server.getWorld(colonyDimension);
 
             playerToTeleport.sendMessage(new TextComponentString("Hold onto your pants, we're going Inter-Dimensional!"));
             playerToTeleport.changeDimension(colonyDimension);
@@ -134,7 +139,7 @@ public final class TeleportToColony
             }
         }
 
-        if (colID >= 1)
+        if (colID >= MIN_COLONY_ID)
         {
             playerToTeleport.setPositionAndUpdate(position.getX(), position.getY() + 2.0, position.getZ());
         }

@@ -26,10 +26,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.minecolonies.api.util.constant.Constants.ORES;
 import static com.minecolonies.api.util.constant.Constants.SAPLINGS;
 import static com.minecolonies.api.util.constant.NbtTagConstants.*;
 
@@ -218,7 +216,7 @@ public class CompatabilityManager implements ICompatabilityManager
         {
             if (saps.getHasSubtypes())
             {
-                for(CreativeTabs tabs: CreativeTabs.CREATIVE_TAB_ARRAY)
+                for(final CreativeTabs tabs: CreativeTabs.CREATIVE_TAB_ARRAY)
                 {
                     final NonNullList<ItemStack> list = NonNullList.create();
                     saps.getItem().getSubItems(tabs, list);

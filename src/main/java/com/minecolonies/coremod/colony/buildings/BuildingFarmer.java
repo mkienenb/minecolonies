@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Predicate;
 
+import static com.minecolonies.api.util.constant.ColonyConstants.NUM_ACHIEVEMENT_FIRST;
 import static com.minecolonies.api.util.constant.ToolLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER;
 import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER_NOONE;
@@ -100,7 +101,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
     /**
      * Fields should be assigned manually to the farmer.
      */
-    private boolean assignManually = false;
+    private boolean shouldAssignManually = false;
 
     /**
      * Public constructor which instantiates the building.
@@ -242,7 +243,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
             final BlockPos fieldLocation = BlockPosUtil.readFromNBT(fieldCompound, TAG_FIELDS_BLOCKPOS);
             farmerFields.add(fieldLocation);
         }
-        assignManually = compound.getBoolean(TAG_ASSIGN_MANUALLY);
+        shouldAssignManually = compound.getBoolean(TAG_ASSIGN_MANUALLY);
 
         if (compound.hasKey(LAST_FIELD_TAG))
         {
@@ -263,7 +264,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
             fieldTagList.appendTag(fieldCompound);
         }
         compound.setTag(TAG_FIELDS, fieldTagList);
-        compound.setBoolean(TAG_ASSIGN_MANUALLY, assignManually);
+        compound.setBoolean(TAG_ASSIGN_MANUALLY, shouldAssignManually);
 
         if (lastField != null)
         {
@@ -310,7 +311,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
     public void serializeToView(@NotNull final ByteBuf buf)
     {
         super.serializeToView(buf);
-        buf.writeBoolean(assignManually);
+        buf.writeBoolean(shouldAssignManually);
 
         int size = 0;
 
@@ -382,7 +383,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
     {
         super.onUpgradeComplete(newLevel);
 
-        if (newLevel == 1)
+        if (newLevel == NUM_ACHIEVEMENT_FIRST)
         {
             getColony().getStatsManager().triggerAchievement(ModAchievements.achievementBuildingFarmer);
         }
@@ -474,7 +475,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
      */
     public boolean assignManually()
     {
-        return assignManually;
+        return shouldAssignManually;
     }
 
     /**
@@ -528,7 +529,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
      */
     public void setAssignManually(final boolean assignManually)
     {
-        this.assignManually = assignManually;
+        this.shouldAssignManually = assignManually;
     }
 
     /**
@@ -539,7 +540,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
         /**
          * Checks if fields should be assigned manually.
          */
-        private boolean assignFieldManually;
+        private boolean shouldAssignFieldManually;
 
         /**
          * Contains a view object of all the fields in the colony.
@@ -575,7 +576,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
         {
             fields = new ArrayList<>();
             super.deserialize(buf);
-            assignFieldManually = buf.readBoolean();
+            shouldAssignFieldManually = buf.readBoolean();
             final int size = buf.readInt();
             for (int i = 1; i <= size; i++)
             {
@@ -606,7 +607,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
          */
         public boolean assignFieldManually()
         {
-            return assignFieldManually;
+            return shouldAssignFieldManually;
         }
 
         /**
@@ -638,7 +639,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
         public void setAssignFieldManually(final boolean assignFieldManually)
         {
             MineColonies.getNetwork().sendToServer(new AssignmentModeMessage(this, assignFieldManually));
-            this.assignFieldManually = assignFieldManually;
+            this.shouldAssignFieldManually = assignFieldManually;
         }
 
         /**

@@ -88,12 +88,12 @@ public class Level
 
         //They are shaft and ladderBack, their parents are the shaft.
         @NotNull final Node cobbleNode = new Node(cobbleCenter.getX(), cobbleCenter.getZ(), ladderCenter);
-        cobbleNode.setStyle(Node.NodeType.LADDER_BACK);
+        cobbleNode.setStyle(LADDER_BACK);
         cobbleNode.setStatus(Node.NodeStatus.COMPLETED);
         nodes.put(cobbleCenter, cobbleNode);
 
         ladderNode = new Node(ladderCenter.getX(), ladderCenter.getZ(), null);
-        ladderNode.setStyle(Node.NodeType.SHAFT);
+        ladderNode.setStyle(SHAFT);
         ladderNode.setStatus(Node.NodeStatus.COMPLETED);
         nodes.put(ladderCenter, ladderNode);
 
@@ -136,8 +136,8 @@ public class Level
 
         final boolean hasDoubles = compound.hasKey(TAG_LADDERX, Constants.NBT.TAG_DOUBLE);
 
-        int ladderX;
-        int ladderZ;
+        final int ladderX;
+        final int ladderZ;
         if (hasDoubles)
         {
             ladderX = MathHelper.floor(compound.getDouble(TAG_LADDERX));

@@ -15,6 +15,7 @@ import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.buildings.BuildingWareHouse;
+import com.minecolonies.coremod.colony.requestsystem.resolvers.core.AbstractRequestResolver;
 import com.minecolonies.coremod.tileentities.TileEntityWareHouse;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
@@ -28,15 +29,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.minecolonies.api.util.RSConstants.CONST_WAREHOUSE_RESOLVER_PRIORITY;
+
 /**
  * ----------------------- Not Documented Object ---------------------
  */
 public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverable>
 {
-
     public WarehouseRequestResolver(
                                      @NotNull final ILocation location,
-                                     @NotNull final IToken token)
+                                     @NotNull final IToken<?> token)
     {
         super(location, token);
     }
@@ -44,7 +46,7 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
     @Override
     public TypeToken<? extends IDeliverable> getRequestType()
     {
-        return TypeToken.of(IDeliverable.class);
+        return TypeConstants.DELIVERABLE;
     }
 
     @Override
@@ -52,8 +54,8 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
     {
         if (!manager.getColony().getWorld().isRemote)
         {
-            Colony colony = (Colony) manager.getColony();
-            Set<TileEntityWareHouse> wareHouses = getWareHousesInColony(colony);
+            final Colony colony = (Colony) manager.getColony();
+            final Set<TileEntityWareHouse> wareHouses = getWareHousesInColony(colony);
             wareHouses.removeIf(Objects::isNull);
             
             return wareHouses.stream().anyMatch(wareHouse -> wareHouse.hasMatchinItemStackInWarehouse(itemStack -> requestToCheck.getRequest().matches(itemStack)));
@@ -68,7 +70,7 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
     /**
      * Moving the curly braces really makes the code hard to read.
      */
-    public List<IToken> attemptResolve(
+    public List<IToken<?>> attemptResolve(
                                         @NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
     {
         if (manager.getColony().getWorld().isRemote)
@@ -76,10 +78,10 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
             return null;
         }
 
-        Colony colony = (Colony) manager.getColony();
-        Set<TileEntityWareHouse> wareHouses = getWareHousesInColony(colony);
+        final Colony colony = (Colony) manager.getColony();
+        final Set<TileEntityWareHouse> wareHouses = getWareHousesInColony(colony);
 
-        for (TileEntityWareHouse wareHouse : wareHouses)
+        for (final TileEntityWareHouse wareHouse : wareHouses)
         {
             ItemStack matchingStack = wareHouse.getFirstMatchingItemStackInWarehouse(itemStack -> request.getRequest().matches(itemStack));
             if (ItemStackUtils.isEmpty(matchingStack))
@@ -93,12 +95,12 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
             final ItemStack deliveryStack = matchingStack.copy();
             request.setDelivery(deliveryStack.copy());
 
-            BlockPos itemStackPos = wareHouse.getPositionOfChestWithItemStack(itemStack -> ItemStack.areItemsEqual(itemStack, deliveryStack));
-            ILocation itemStackLocation = manager.getFactoryController().getNewInstance(TypeConstants.ILOCATION, itemStackPos, wareHouse.getWorld().provider.getDimension());
+            final BlockPos itemStackPos = wareHouse.getPositionOfChestWithItemStack(itemStack -> ItemStack.areItemsEqual(itemStack, deliveryStack));
+            final ILocation itemStackLocation = manager.getFactoryController().getNewInstance(TypeConstants.ILOCATION, itemStackPos, wareHouse.getWorld().provider.getDimension());
 
-            Delivery delivery = new Delivery(itemStackLocation, request.getRequester().getRequesterLocation(), deliveryStack.copy());
+            final Delivery delivery = new Delivery(itemStackLocation, request.getRequester().getRequesterLocation(), deliveryStack.copy());
 
-            IToken requestToken = manager.createRequest(new WarehouseRequestResolver(request.getRequester().getRequesterLocation(), request.getToken()), delivery);
+            final IToken<?> requestToken = manager.createRequest(new WarehouseRequestResolver(request.getRequester().getRequesterLocation(), request.getToken()), delivery);
 
             return ImmutableList.of(requestToken);
         }
@@ -106,7 +108,6 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
         return Lists.newArrayList();
     }
 
-    @Nullable
     @Override
     public void resolve(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
     {
@@ -115,7 +116,7 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
 
     @Nullable
     @Override
-    public IRequest getFollowupRequestForCompletion(
+    public IRequest<?> getFollowupRequestForCompletion(
                                                      @NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> completedRequest)
     {
         //No followup needed.
@@ -124,12 +125,20 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
 
     @Nullable
     @Override
-    public IRequest onRequestCancelledOrOverruled(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
+    public IRequest<?> onRequestCancelled(
+      @NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
     {
         return null;
     }
 
-    private static Set<TileEntityWareHouse> getWareHousesInColony(Colony colony)
+    @Override
+    public void onRequestBeingOverruled(
+      @NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
+    {
+
+    }
+
+    private static Set<TileEntityWareHouse> getWareHousesInColony(final Colony colony)
     {
         return colony.getBuildingManager().getBuildings().values().stream()
                  .filter(building -> building instanceof BuildingWareHouse)
@@ -137,22 +146,27 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
                  .collect(Collectors.toSet());
     }
 
-    @NotNull
     @Override
-    public void onRequestComplete(@NotNull final IToken token)
+    public void onRequestComplete(@NotNull final IRequestManager manager, @NotNull final IToken<?> token)
     {
+    }
+
+    @Override
+    public void onRequestCancelled(@NotNull final IRequestManager manager, @NotNull final IToken<?> token)
+    {
+        //Somebody cancelled the delivery.
+        //reassign the parent request.
+        final IRequest request = manager.getRequestForToken(token);
+        if (request.hasParent())
+        {
+            final IRequest parent = manager.getRequestForToken(token);
+            manager.reassignRequest(parent.getToken(), ImmutableList.of());
+        }
     }
 
     @NotNull
     @Override
-    public void onRequestCancelled(@NotNull final IToken token)
-    {
-
-    }
-
-    @NotNull
-    @Override
-    public ITextComponent getDisplayName(@NotNull final IToken token)
+    public ITextComponent getDisplayName(@NotNull final IRequestManager manager, @NotNull final IToken<?> token)
     {
         return new TextComponentTranslation(TranslationConstants.COM_MINECOLONIES_BUILDING_WAREHOUSE_NAME);
     }
@@ -160,6 +174,6 @@ public class WarehouseRequestResolver extends AbstractRequestResolver<IDeliverab
     @Override
     public int getPriority()
     {
-        return CONST_DEFAULT_RESOLVER_PRIORITY + 50;
+        return CONST_WAREHOUSE_RESOLVER_PRIORITY;
     }
 }
