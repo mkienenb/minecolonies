@@ -1132,6 +1132,7 @@ public class EntityCitizen extends EntityAgeable implements INpc
         String textureBase = "textures/entity/" + model.textureBase;
         textureBase += female ? "female" : "male";
 
+        final String textureBase = "textures/entity/" + model.textureBase + (female ? "Female" : "Male");
         final int moddedTextureId = (textureId % model.numTextures) + 1;
         texture = new ResourceLocation(Constants.MOD_ID, textureBase + moddedTextureId + renderMetadata + ".png");
     }
@@ -1169,7 +1170,6 @@ public class EntityCitizen extends EntityAgeable implements INpc
                 return;
             }
 
-            final double maxValue = Integer.MAX_VALUE - citizenData.getExperience();
             double localXp = xp * skillModifier / EXP_DIVIDER;
             final double workBuildingLevel = getWorkBuilding() == null ? 0 : getWorkBuilding().getBuildingLevel();
             final double bonusXp = (workBuildingLevel * (1 + citizenHutLevel) / Math.log(this.citizenData.getLevel() + 2.0D)) / 2;
@@ -1204,6 +1204,7 @@ public class EntityCitizen extends EntityAgeable implements INpc
                 }
             }
 
+            final double maxValue = Integer.MAX_VALUE - citizenData.getExperience();
             if (localXp > maxValue)
             {
                 localXp = maxValue;
@@ -1530,7 +1531,6 @@ public class EntityCitizen extends EntityAgeable implements INpc
     public boolean isAtHome()
     {
         @Nullable final AbstractBuilding homeBuilding = getHomeBuilding();
-        @Nullable final BlockPos homePosition = getHomePosition();
 
         if (homeBuilding instanceof BuildingHome)
         {
@@ -1541,6 +1541,7 @@ public class EntityCitizen extends EntityAgeable implements INpc
                     corners.getSecond().getSecond()).intersectsWithXZ(new Vec3d(this.getPosition()));
         }
 
+        @Nullable final BlockPos homePosition = getHomePosition();
         return homePosition != null && homePosition.distanceSq((int) Math.floor(posX), (int) posY, (int) Math.floor(posZ)) <= RANGE_TO_BE_HOME;
     }
 

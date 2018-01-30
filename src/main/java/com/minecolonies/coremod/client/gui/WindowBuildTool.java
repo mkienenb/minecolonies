@@ -20,6 +20,7 @@ import com.minecolonies.structures.helpers.Settings;
 import com.minecolonies.structures.helpers.Structure;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Rotation;
@@ -140,11 +141,6 @@ public class WindowBuildTool extends AbstractWindowSkeleton
     private       DialogDoneCancel confirmDeleteDialog;
 
     /**
-     * Check if the tool is in the static schematic mode.
-     */
-    private boolean staticSchematicMode = false;
-
-    /**
      * Name of the static schematic if existent.
      */
     private String staticSchematicName = "";
@@ -168,7 +164,6 @@ public class WindowBuildTool extends AbstractWindowSkeleton
             this.rotation = rotation;
         }
 
-        staticSchematicMode = true;
         renameButton = findPaneOfTypeByID(BUTTON_RENAME, Button.class);
         deleteButton = findPaneOfTypeByID(BUTTON_DELETE, Button.class);
     }
@@ -187,7 +182,6 @@ public class WindowBuildTool extends AbstractWindowSkeleton
         this.init(pos);
         renameButton = findPaneOfTypeByID(BUTTON_RENAME, Button.class);
         deleteButton = findPaneOfTypeByID(BUTTON_DELETE, Button.class);
-        this.staticSchematicMode = false;
     }
 
     private void init(final BlockPos pos)
@@ -897,8 +891,10 @@ public class WindowBuildTool extends AbstractWindowSkeleton
                         Settings.instance.getMirror()));
             }
 
-            Settings.instance.reset();
-            close();
+            if(!GuiScreen.isShiftKeyDown())
+            {
+                cancelClicked();
+            }
         }
     }
 
@@ -929,8 +925,10 @@ public class WindowBuildTool extends AbstractWindowSkeleton
             }
         }
 
-        Settings.instance.reset();
-        close();
+        if(!GuiScreen.isShiftKeyDown())
+        {
+            cancelClicked();
+        }
     }
 
     /**

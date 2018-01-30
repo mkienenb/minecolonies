@@ -13,8 +13,6 @@ import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.colony.CitizenDataView;
 import com.minecolonies.coremod.colony.ColonyManager;
 import com.minecolonies.coremod.colony.ColonyView;
-import com.minecolonies.coremod.colony.requestsystem.management.manager.StandardRequestManager;
-import com.minecolonies.coremod.colony.requestsystem.management.manager.wrapped.AbstractWrappedRequestManager;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.item.ItemStack;
 import org.apache.commons.lang3.text.WordUtils;
@@ -144,20 +142,7 @@ public class WindowRequestDetail extends Window implements ButtonHandler
     @Override
     public void onOpened()
     {
-        String[] labels = request.getLongDisplayString().getFormattedText()
-                            .replace("§r", " ")
-                            .replace(": ", ":\n")
-
-                            .split("(?<=\n)");
-
-        final StringBuilder finalLabel = new StringBuilder();
-
-        for (final String s : labels)
-        {
-            finalLabel.append(WordUtils.wrap(s, WRAP_AFTER_X, "\n", true));
-        }
-
-        labels = finalLabel.toString().split("\n");
+        final String[] labels = new String[] {request.getLongDisplayString().getFormattedText()};
         final Box box = findPaneOfTypeByID(BOX_ID_REQUEST, Box.class);
         int y = Y_OFFSET_EACH_TEXTFIELD;
         for (final String s : labels)
@@ -184,7 +169,8 @@ public class WindowRequestDetail extends Window implements ButtonHandler
             logo.setImage(request.getDisplayIcon());
         }
 
-        findPaneOfTypeByID(REQUESTER, Label.class).setLabelText(request.getRequester().getDisplayName(request.getToken()).getFormattedText());
+        final ColonyView view = ColonyManager.getColonyView(colonyId);
+        findPaneOfTypeByID(REQUESTER, Label.class).setLabelText(request.getRequester().getDisplayName(view.getRequestManager(), request.getToken()).getFormattedText());
         final Label targetLabel = findPaneOfTypeByID(LIST_ELEMENT_ID_REQUEST_LOCATION, Label.class);
         targetLabel.setLabelText(request.getRequester().getDeliveryLocation().toString());
 
@@ -205,7 +191,7 @@ public class WindowRequestDetail extends Window implements ButtonHandler
                 return;
             }
 
-            findPaneOfTypeByID(RESOLVER, Label.class).setLabelText("Resolver: " + resolver.getDisplayName(request.getToken()).getFormattedText());
+            findPaneOfTypeByID(RESOLVER, Label.class).setLabelText("Resolver: " + resolver.getDisplayName(view.getRequestManager(), request.getToken()).getFormattedText());
         }
         catch(@SuppressWarnings(EXCEPTION_HANDLERS_SHOULD_PRESERVE_THE_ORIGINAL_EXCEPTIONS) final IllegalArgumentException e)
         {
