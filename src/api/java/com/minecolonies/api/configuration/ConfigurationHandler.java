@@ -228,6 +228,9 @@ public final class ConfigurationHandler
           "Should the request system print out debug information? Useful in case of malfunctioning of set system.").getBoolean();
         Configurations.RequestSystem.creativeResolve = config.get(CATEGORY_REQUEST, "creativeResolve", Configurations.RequestSystem.creativeResolve,
           "Should the request system creatively resolve (if possible) when the player is required to resolve a request.").getBoolean();
+        Configurations.RequestSystem.canPlayerUseResetCommand = config.get(CATEGORY_REQUEST, "creativeResolve", Configurations.RequestSystem
+                        .canPlayerUseResetCommand,
+                "Should the player be allowed to use the '/mc colony rs reset' command?").getBoolean();
     }
 
     /**

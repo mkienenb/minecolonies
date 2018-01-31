@@ -708,22 +708,11 @@ public class Configurations
         public static int     delayBetweenRetries      = 1200;
         public static boolean enableDebugLogging       = false;
         public static boolean creativeResolve          = false;
+        public static boolean canPlayerUseResetCommand = false;
 
         private RequestSystem()
         {
             // Private to hide implicit
         }
-
-        @Config.Comment("The maximal amount of buildings the Delivery Man should try to gather before attempting a drop off at the warehouse.")
-        public int maximalBuildingsToGather = 6;
-
-        @Config.Comment("The minimal amount of buildings the Delivery Man should try to gather before attempting a drop off at the warehouse.")
-        public int minimalBuildingsToGather = 3;
-
-        @Config.Comment("Should the request system creatively resolve (if possible) when the player is required to resolve a request.")
-        public boolean creativeResolve = false;
-
-        @Config.Comment("Should the player be allowed to use the '/mc colony rs reset' command?")
-        public boolean canPlayerUseResetCommand = false;
     }
 }
