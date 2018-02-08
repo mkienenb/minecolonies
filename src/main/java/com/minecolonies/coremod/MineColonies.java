@@ -2,6 +2,7 @@ package com.minecolonies.coremod;
 
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.constant.Constants;
+import com.minecolonies.api.util.Log;
 import com.minecolonies.coremod.achievements.ModAchievements;
 import com.minecolonies.coremod.colony.BarbarianSpawnEventHandler;
 import com.minecolonies.coremod.colony.requestsystem.init.RequestSystemInitializer;
@@ -24,8 +25,29 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
+import org.apache.logging.log4j.core.appender.FileAppender;
+import org.apache.logging.log4j.core.config.AppenderRef;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
+import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.jetbrains.annotations.NotNull;
 
 @Mod.EventBusSubscriber
@@ -49,8 +71,75 @@ public class MineColonies
 
     private static SimpleNetworkWrapper network;
 
+    private static void updateLog4jConfiguration(String log4jConfigFile)
+    {
+        try
+        {
+//            // This example code from log4j docs should work, but doesn't either
+//            final LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+//            final org.apache.logging.log4j.core.config.Configuration config = ctx.getConfiguration();
+//            final Layout layout = PatternLayout.newBuilder().build();
+//            final Appender appender = ConsoleAppender.createAppender(layout, null, "SYSTEM_ERR", "CONSOLEAPP", "true", "true");
+//            
+////            final Appender appender = FileAppender.createAppender("target/test.log", "false", "false", "File", "true",
+////                "false", "false", "4000", layout, null, "false", null, config);
+//            appender.start();
+//            config.addAppender(appender);
+//            final AppenderRef ref = AppenderRef.createAppenderRef("CONSOLEAPP", null, null);
+//            final AppenderRef[] refs = new AppenderRef[] {ref};
+//            final String includeLocation = "false";
+//            final LoggerConfig loggerConfig = LoggerConfig.createLogger("true", Level.DEBUG, Constants.MOD_ID, includeLocation , refs, null, config, null );
+//            loggerConfig.addAppender(appender, null, null);
+//            config.addLogger("org.apache.logging.log4j", loggerConfig);
+//            ctx.updateLoggers();
+
+            final LoggerContext nonCurrentLoggerContext = LoggerContext.getContext(false);
+            final org.apache.logging.log4j.core.config.Configuration currentConfig = nonCurrentLoggerContext.getConfiguration();
+
+            final ConfigurationSource minecoloniesSource = new ConfigurationSource(new FileInputStream(log4jConfigFile), new File(log4jConfigFile));
+            final XmlConfiguration minecoloniesConfig = new XmlConfiguration(null, minecoloniesSource);
+
+            minecoloniesConfig.initialize();
+            minecoloniesConfig.setup();
+            minecoloniesConfig.start();
+            minecoloniesConfig.stop();
+
+            final Map<String, Appender> appenders = minecoloniesConfig.getAppenders();
+            final Map<String, LoggerConfig> loggers = minecoloniesConfig.getLoggers();
+            final Collection<Appender> appenderList = appenders.values();
+            for (final Appender appender : appenderList)
+            {
+                // appender.initialize();
+                appender.start();
+                currentConfig.addAppender(appender);
+            }
+            for (final Entry<String, LoggerConfig> entry : loggers.entrySet())
+            {
+                final String name = entry.getKey();
+                final LoggerConfig loggerConfig = entry.getValue();
+                for (final Appender appender : appenderList)
+                {
+                    loggerConfig.addAppender(appender, null, null);
+                }
+                currentConfig.addLogger(name, loggerConfig);
+                // loggerConfig.initialize();
+                loggerConfig.start();
+            }
+
+            nonCurrentLoggerContext.updateLoggers();
+        }
+        catch (final Exception e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
     static
     {
+        // Reconfigure logging
+        updateLog4jConfiguration("log4j2-minecolonies.xml");
+
         MinecraftForge.EVENT_BUS.register(new BarbarianSpawnEventHandler());
         MinecraftForge.EVENT_BUS.register(new EventHandler());
         MinecraftForge.EVENT_BUS.register(new FMLEventHandler());
